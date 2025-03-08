@@ -1,0 +1,17 @@
+pipeline {
+    agent any
+    stages {
+        stage('Build') {
+            steps {
+                dir('/var/jenkins_home/workspace/app') {
+                    sh 'mvn clean package'
+                }
+            }
+        }
+        stage('Deploy') {
+            steps {
+                sh 'cp /var/jenkins_home/workspace/app/target/*.war /var/jenkins_home/tomcat-webapps/app.war'
+            }
+        }
+    }
+}
