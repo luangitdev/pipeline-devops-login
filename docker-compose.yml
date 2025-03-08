@@ -1,0 +1,63 @@
+version: '3.8'
+services:
+  app:
+    image: tomcat:9-jdk17
+    depends_on:
+      - mysql
+      - rabbitmq
+      - memcached
+    volumes:
+      - ./tomcat/webapps:/usr/local/tomcat/webapps
+    ports:
+      - "8080:8080"
+    environment:
+      - JAVA_OPTS=-Dmemcached.servers=memcached:11211
+
+  nginx:
+    image: nginx:latest
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf
+    depends_on:
+      - app
+
+  jenkins:
+    build:
+      context: ./jenkins
+      dockerfile: Dockerfile
+    ports:
+      - "8081:8080"
+      - "50000:50000"
+    volumes:
+      - jenkins_home:/var/jenkins_home
+      - ./jenkins/Jenkinsfile:/var/jenkins_home/Jenkinsfile
+      - ./tomcat/webapps:/var/jenkins_home/tomcat-webapps
+      - ./app:/var/jenkins_home/workspace/app
+    depends_on:
+      - app
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+
+  memcached:
+    image: memcached:latest
+    ports:
+      - "11211:11211"
+
+  mysql:
+    image: mysql:8
+    ports:
+      - "3306:3306"
+    environment:
+      - MYSQL_ROOT_PASSWORD=123456
+      - MYSQL_DATABASE=login_db
+    volumes:
+      - mysql_data:/var/lib/mysql
+
+volumes:
+  jenkins_home:
+  mysql_data:
