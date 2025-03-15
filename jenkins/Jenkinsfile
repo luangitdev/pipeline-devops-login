@@ -1,16 +1,32 @@
 pipeline {
     agent any
+    tools {
+        maven 'Maven' // Necessário se configurado no Jenkins, opcional no seu caso
+    }
+    environment {
+        APP_NAME = 'login' // Ajuste para o <artifactId> do seu pom.xml
+        WAR_FILE = "target/${APP_NAME}.war"
+        EC2_IP = '<EC2_PUBLIC_IP>' // Substitua pelo IP real
+    }
     stages {
+        stage('Checkout') {
+            steps {
+                echo "Obtendo o código-fonte do repositório"
+                git branch: 'main', url: 'git@github.com:luangitdev/pipeline-devops-login.git'
+            }
+        }
         stage('Build') {
             steps {
-                dir('/var/jenkins_home/workspace/app') {
-                    sh 'mvn clean package'
-                }
+                echo "Gerando o artefato (.war)"
+                sh "mvn clean package"
             }
         }
         stage('Deploy') {
             steps {
-                sh 'cp /var/jenkins_home/workspace/app/target/*.war /var/jenkins_home/tomcat-webapps/app.war'
+                sshagent(credentials: ['aws-ec2-ssh-cred']) {
+                    sh "scp ${WAR_FILE} ec2-user@${EC2_IP}:/tmp/app.war"
+                    sh "ssh ec2-user@${EC2_IP} \"sudo mv /tmp/app.war /var/lib/docker/volumes/tomcat_9090/_data/app.war\""
+                }
             }
         }
     }
