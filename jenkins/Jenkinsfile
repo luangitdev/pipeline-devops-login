@@ -23,6 +23,7 @@ pipeline {
         }
         stage('Deploy') {
             steps {
+                echo "Copiando o .war para o servidor do Tomcat via SSH"
                 sshagent(credentials: ['aws-ec2-ssh-cred']) {
                     sh "scp ${WAR_FILE} ec2-user@${EC2_IP}:/tmp/app.war"
                     sh "ssh ec2-user@${EC2_IP} \"sudo mv /tmp/app.war /var/lib/docker/volumes/tomcat_9090/_data/app.war\""
